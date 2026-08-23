@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <title>Jotter (dark)</title>
+  <rect x="4" y="4" width="120" height="120" rx="27" fill="#20242B"></rect>
+  <rect x="4.5" y="4.5" width="119" height="119" rx="26.5" fill="none" stroke="rgba(255,255,255,0.10)"></rect>
+  <g transform="rotate(8 65 68)">
+    <rect x="35" y="38" width="60" height="60" rx="6" fill="#5C9078"></rect>
+  </g>
+  <rect x="29" y="32" width="62" height="62" rx="6" fill="#E5AF33"></rect>
+  <rect x="43" y="56" width="34" height="5" rx="2.5" fill="#1A1918" opacity="0.55"></rect>
+  <rect x="43" y="72" width="20" height="5" rx="2.5" fill="#1A1918" opacity="0.34"></rect>
+  <g transform="rotate(38 89 36)">
+    <rect x="86" y="34" width="6" height="18" rx="3" fill="#15181D"></rect>
+    <circle cx="89" cy="33" r="11.5" fill="#D9522C"></circle>
+    <circle cx="85.4" cy="29.4" r="3.2" fill="rgba(255,255,255,0.34)"></circle>
+  </g>
+</svg>

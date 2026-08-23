@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <title>jotter-symbolic</title>
+  <g fill="none" stroke="#222222" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2.15" y="5.15" width="9.7" height="9.7" rx="1.7"></rect>
+    <path d="M12.15 4.85 L13.1 3.9"></path>
+  </g>
+  <circle cx="13.9" cy="3.1" r="1.9" fill="#222222"></circle>
+</svg>
