@@ -1,9 +1,6 @@
 use crate::note::{self, Note};
 use crate::state::AppState;
 use crate::window::open_note_window;
-use std::sync::atomic::Ordering;
-use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
-use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Manager};
 
 const CASCADE_STEP: f64 = 32.0;
@@ -106,57 +103,4 @@ pub fn load_startup_notes(app: &AppHandle) {
     for note in all {
         let _ = open_note_window(app, &note);
     }
-}
-
-pub fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
-    let new_note = MenuItem::with_id(app, "new_note", "New Sticky Note", true, None::<&str>)?;
-    let show_all_item = MenuItem::with_id(app, "show_all", "Show All Notes", true, None::<&str>)?;
-    let sep = PredefinedMenuItem::separator(app)?;
-    let quit = MenuItem::with_id(app, "quit", "Quit Jotter", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&new_note, &show_all_item, &sep, &quit])?;
-    let icon = app.default_window_icon().unwrap().clone();
-
-    // Some desktops (plain GNOME without the AppIndicator shell extension,
-    // among others) lack the libayatana-appindicator3/libappindicator3
-    // library the tray icon needs. TrayIconBuilder::build() panics in that
-    // case rather than returning an Err, which would otherwise take the
-    // whole app down before a single window opens. Catch it and run without
-    // a tray instead.
-    let built = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
-        TrayIconBuilder::new()
-            .icon(icon)
-            .menu(&menu)
-            .show_menu_on_left_click(true)
-            .on_menu_event(|app, event| match event.id.as_ref() {
-                "new_note" => {
-                    spawn_new_note(app);
-                }
-                "show_all" => {
-                    show_all(app);
-                }
-                "quit" => {
-                    app.exit(0);
-                }
-                _ => {}
-            })
-            .build(app)
-    }));
-
-    match built {
-        Ok(Ok(_tray)) => {
-            app.state::<AppState>().tray_active.store(true, Ordering::Relaxed);
-        }
-        Ok(Err(err)) => {
-            eprintln!("tray icon unavailable, continuing without it: {err}");
-        }
-        Err(_) => {
-            eprintln!(
-                "tray icon unavailable (missing libayatana-appindicator3/libappindicator3); \
-                 continuing without it. The app will quit when the last note window closes \
-                 instead of staying in the tray"
-            );
-        }
-    }
-
-    Ok(())
 }

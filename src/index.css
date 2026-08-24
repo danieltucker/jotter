@@ -450,6 +450,13 @@ body {
   border-radius: 4px;
 }
 
+.note-prose img {
+  display: block;
+  max-width: 100%;
+  border-radius: 6px;
+  margin: 0 0 0.6em;
+}
+
 .note-prose hr {
   border: none;
   border-top: 1px solid rgba(0, 0, 0, 0.2);
@@ -469,6 +476,47 @@ body {
   height: 0;
   color: rgba(0, 0, 0, 0.35);
   pointer-events: none;
+}
+
+.bubble-menu {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 8px;
+  background: #1f1f1f;
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.2),
+    0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.bubble-menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: #e6e6e6;
+  cursor: pointer;
+}
+
+.bubble-menu-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.bubble-menu-btn.is-active {
+  background: rgba(255, 255, 255, 0.24);
+  color: #ffffff;
+}
+
+.bubble-menu-sep {
+  width: 1px;
+  height: 18px;
+  margin: 0 2px;
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .slash-menu {

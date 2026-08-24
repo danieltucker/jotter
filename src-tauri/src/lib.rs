@@ -5,7 +5,6 @@ mod state;
 mod window;
 
 use state::AppState;
-use tauri::Manager;
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
 fn new_note_shortcut() -> Shortcut {
@@ -45,23 +44,11 @@ pub fn run() {
                 eprintln!("could not register global shortcut for new note: {err}");
             }
 
-            app::setup_tray(handle)?;
             app::load_startup_notes(handle);
 
             Ok(())
         })
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
-        .run(|app_handle, event| {
-            // Keep running in the tray after the last note window is closed;
-            // only the tray's Quit item should end the process. If the tray
-            // never came up (see app::setup_tray), there'd be no way to quit
-            // at all, so fall back to exiting normally on the last window.
-            if let tauri::RunEvent::ExitRequested { api, .. } = event {
-                let tray_active = app_handle.state::<AppState>().tray_active.load(std::sync::atomic::Ordering::Relaxed);
-                if tray_active {
-                    api.prevent_exit();
-                }
-            }
-        });
+        .run(|_, _| {});
 }
