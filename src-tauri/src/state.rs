@@ -11,8 +11,8 @@ pub struct AppState {
     /// Set once the tray icon is confirmed built. Some desktop environments
     /// (e.g. plain GNOME without the AppIndicator extension) lack the
     /// libappindicator library the tray icon needs; without it, the only way
-    /// to quit would otherwise be the tray's Quit item, which never appears —
-    /// see `app::setup_tray`.
+    /// to quit would otherwise be the tray's Quit item, which never appears.
+    /// See `app::setup_tray`.
     pub tray_active: AtomicBool,
 }
 

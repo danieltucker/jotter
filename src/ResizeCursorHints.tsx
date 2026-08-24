@@ -11,8 +11,8 @@ const ZONES = [
 
 /**
  * Purely visual: shows the right resize cursor over Tauri's native
- * undecorated-window border grab (a hardcoded 5px inset on Linux — see
- * README "Feature notes"). No mouse handlers, no startResizeDragging() —
+ * undecorated-window border grab (a hardcoded 5px inset on Linux, see
+ * README "Feature notes"). No mouse handlers, no startResizeDragging():
  * the actual resize-drag is entirely native. Two earlier attempts at
  * JS-driven custom resize handles both caused the window to visibly
  * shrink/grow erratically mid-drag; keep it that way; don't add drag logic

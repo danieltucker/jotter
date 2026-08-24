@@ -152,7 +152,7 @@ pub fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
         Err(_) => {
             eprintln!(
                 "tray icon unavailable (missing libayatana-appindicator3/libappindicator3); \
-                 continuing without it — the app will quit when the last note window closes \
+                 continuing without it. The app will quit when the last note window closes \
                  instead of staying in the tray"
             );
         }

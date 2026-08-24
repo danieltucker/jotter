@@ -37,7 +37,7 @@ body {
 }
 
 /*
- * Cosmetic only — shows the right resize cursor over Tauri's native
+ * Cosmetic only, shows the right resize cursor over Tauri's native
  * undecorated-window border grab (a hardcoded 5px inset on Linux). No click
  * handlers live here; see ResizeCursorHints.tsx.
  */
