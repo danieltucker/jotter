@@ -5,16 +5,51 @@ Multiple independent, always-visible note windows (like Apple's Stickies), but
 every note is markdown, and typing `/` on a new line opens a command menu
 (headings, lists, to-dos, quotes, code blocks, dividers, Notion/Confluence style).
 
-## Running it
+## Screenshots
 
-A build is already exported to your host:
+| | |
+| --- | --- |
+| ![A note showing markdown rendering: headings, bold text, a to-do, a quote, and a code block](screenshots/welcome-note.png) | ![The note's hamburger menu: New note, Show all notes, color swatches, About, Delete note](screenshots/note-menu.png) |
+| ![Jotter's icon pinned to the GNOME taskbar](screenshots/taskbar.png) | ![The delete-confirmation dialog over a note](screenshots/delete-confirm.png) |
+| ![The `/` slash-command menu, scrolled to a selected item further down the list](screenshots/slash-menu.png) | |
+
+## Features
+
+- Multiple independent, always-visible note windows, each its own small
+  draggable/resizable window (like Apple's Stickies).
+- Every note is markdown under the hood: standard syntax converts as you
+  type, or press `/` for a command menu (headings, lists, to-dos, quotes,
+  code blocks, dividers).
+- Selecting text pops up a formatting toolbar: bold, italic, strikethrough,
+  code, plus quick toggles for heading/bullet list/to-do list.
+- Paste an image (e.g. a screenshot) straight into a note.
+- 6 note colors, and a pin toggle to keep a note always-on-top.
+- <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>N</kbd> creates a new note from
+  anywhere, even when Jotter isn't focused (see "Global shortcut" below).
+
+Built with [Tauri](https://tauri.app) (Rust backend, one native window per
+note) + [React](https://react.dev) + [TipTap](https://tiptap.dev) (the
+editor), with note content stored as plain markdown via `tiptap-markdown`.
+
+## Getting started
 
 ```
-jotter
+git clone https://github.com/danieltucker/jotter.git
+cd jotter
+npm install
+npm run tauri build
 ```
 
-It also shows up in the GNOME app grid as **Jotter**. The launcher forces
-`GDK_BACKEND=x11`; see "Wayland caveat" below for why.
+This needs Rust, Node, and Tauri's Linux prerequisites (GTK/WebKit dev
+headers) installed; see [Tauri's Linux setup
+guide](https://tauri.app/start/prerequisites/) if `npm run tauri build`
+fails on missing system libraries. The built binary ends up at
+`src-tauri/target/release/jotter`, runnable directly, no install step needed.
+
+For the day-to-day dev workflow on this project's own machine (a Bazzite
+host, distrobox toolchain, exported launcher), see "Development" below.
+
+## Notes storage
 
 Notes are stored as JSON (id, color, position, size, markdown content) in:
 
@@ -28,16 +63,10 @@ ever change it, the app looks in a new, empty directory: copy
 `~/.local/share/<new identifier>/notes/` first, or existing notes won't show
 up (they aren't lost, just invisible until the directory is migrated).
 
-Closing a note's window just hides it; the app keeps running via a tray icon
-(New Sticky Note / Show All Notes / Quit). Deleting a note is a separate action
-(trash icon in the note's hover toolbar) and is permanent.
-
-The tray icon needs `libayatana-appindicator3` (or `libappindicator3`), which
-isn't installed by default on every desktop (e.g. plain GNOME without the
-AppIndicator shell extension). If it's missing, `app::setup_tray` catches the
-resulting panic and runs without a tray instead of crashing on launch. In
-that mode, the app quits normally when the last note window closes, since
-there'd otherwise be no Quit item to fall back on.
+Closing a note's window deletes that note (same destructive action as the
+trash icon in the note's hover toolbar, with the same confirmation dialog).
+The app quits normally once the last note window closes; there's no tray
+icon or background-running mode.
 
 ## Development
 
@@ -48,6 +77,11 @@ bind-mounted into the container automatically. The container is still named
 `stickaroos-dev` (a leftover from before the app was renamed); it's just a
 build environment, not part of the shipped app, so it was left alone rather
 than risk breaking the container to chase a cosmetic match.
+
+Once a release binary has been exported (see `distrobox-export --bin`
+below), it also shows up in the GNOME app grid as **Jotter**, and can be run
+directly from anywhere with just `jotter`. The launcher forces
+`GDK_BACKEND=x11`; see "Wayland caveat" below for why.
 
 ```
 distrobox enter stickaroos-dev
@@ -105,7 +139,7 @@ It's registered in `src-tauri/src/lib.rs` (`new_note_shortcut()`); if it
 conflicts with an existing GNOME/IBus binding on your system, change the
 `Modifiers`/`Code` there and rebuild.
 
-## Feature notes
+## Implementation notes
 
 - Note colors: yellow, pink, blue, green, purple, gray (`src/colors.ts`).
 - Pin/always-on-top toggle per note.
@@ -144,10 +178,9 @@ conflicts with an existing GNOME/IBus binding on your system, change the
   icon alone no longer means "just hide." Every saved note still reopens
   automatically on the next full app launch regardless of what was open at
   exit (`app::load_startup_notes` reopens everything in the notes
-  directory). "Show all notes" in the hamburger menu (mirrors the tray's own
-  item, same `show_all_notes` command) reopens any note that's merely
-  minimized or was closed via the tray, without a full app restart, and
-  doesn't depend on the tray being available.
+  directory). "Show all notes" in the hamburger menu (`show_all_notes`
+  command) reopens any note that's merely minimized, without a full app
+  restart.
 - Note windows are created with `.visible(false)` and shown by the frontend
   (`App.tsx`, once `note` state settles either way) rather than at creation,
   so there's no flash of Tauri's default black background while the webview

@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import type { SuggestionKeyDownProps } from "@tiptap/suggestion";
 import type { SlashCommandItem } from "./slashCommandItems";
 
@@ -14,8 +14,13 @@ export interface SlashCommandListRef {
 export const SlashCommandList = forwardRef<SlashCommandListRef, SlashCommandListProps>(
   ({ items, command }, ref) => {
     const [selected, setSelected] = useState(0);
+    const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
     useEffect(() => setSelected(0), [items]);
+
+    useEffect(() => {
+      itemRefs.current[selected]?.scrollIntoView({ block: "nearest" });
+    }, [selected]);
 
     const select = (index: number) => {
       const item = items[index];
@@ -49,6 +54,9 @@ export const SlashCommandList = forwardRef<SlashCommandListRef, SlashCommandList
         {items.map((item, index) => (
           <button
             key={item.title}
+            ref={(el) => {
+              itemRefs.current[index] = el;
+            }}
             type="button"
             className={`slash-menu-item${index === selected ? " is-selected" : ""}`}
             onClick={() => select(index)}

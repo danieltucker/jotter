@@ -518,9 +518,10 @@ body {
 }
 
 .slash-menu {
-  min-width: 220px;
+  width: 220px;
   max-height: 280px;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 4px;
   border-radius: 8px;
   background: #ffffff;
