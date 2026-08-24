@@ -9,7 +9,7 @@ Multiple independent, always-visible note windows (like Apple's Stickies), but
 every note is markdown, and typing `/` on a new line opens a command menu
 (headings, lists, to-dos, quotes, code blocks, dividers, Notion/Confluence style).
 
-<img src="screenshots/welcome-note.png?v=2" width="440" alt="A Jotter note showing markdown rendering: a heading, bold text, a to-do, a quote, and a code block">
+<img src="screenshots/note-preview.png" width="440" alt="A Jotter note showing markdown rendering: a heading, bold text, a to-do, a quote, and a code block">
 
 </div>
 
