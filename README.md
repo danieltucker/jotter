@@ -1,17 +1,17 @@
+<div align="center">
+
 # Jotter
+
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 A markdown-native sticky-notes app for Linux, built with Tauri + React + TipTap.
 Multiple independent, always-visible note windows (like Apple's Stickies), but
 every note is markdown, and typing `/` on a new line opens a command menu
 (headings, lists, to-dos, quotes, code blocks, dividers, Notion/Confluence style).
 
-## Screenshots
+<img src="screenshots/welcome-note.png" width="440" alt="A Jotter note showing markdown rendering: a heading, bold text, a to-do, a quote, and a code block">
 
-| | |
-| --- | --- |
-| ![A note showing markdown rendering: headings, bold text, a to-do, a quote, and a code block](screenshots/welcome-note.png) | ![The note's hamburger menu: New note, Show all notes, color swatches, About, Delete note](screenshots/note-menu.png) |
-| ![Jotter's icon pinned to the GNOME taskbar](screenshots/taskbar.png) | ![The delete-confirmation dialog over a note](screenshots/delete-confirm.png) |
-| ![The `/` slash-command menu, scrolled to a selected item further down the list](screenshots/slash-menu.png) | |
+</div>
 
 ## Features
 
@@ -26,6 +26,12 @@ every note is markdown, and typing `/` on a new line opens a command menu
 - 6 note colors, and a pin toggle to keep a note always-on-top.
 - <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>N</kbd> creates a new note from
   anywhere, even when Jotter isn't focused (see "Global shortcut" below).
+
+<p align="center">
+  <img src="screenshots/slash-menu.png" width="260" alt="The `/` slash-command menu, scrolled to a selected item further down the list">
+  &nbsp;&nbsp;
+  <img src="screenshots/note-menu.png" width="260" alt="The note's hamburger menu: New note, Show all notes, color swatches, About, Delete note">
+</p>
 
 Built with [Tauri](https://tauri.app) (Rust backend, one native window per
 note) + [React](https://react.dev) + [TipTap](https://tiptap.dev) (the
@@ -68,6 +74,10 @@ trash icon in the note's hover toolbar, with the same confirmation dialog).
 The app quits normally once the last note window closes; there's no tray
 icon or background-running mode.
 
+<p align="center">
+  <img src="screenshots/delete-confirm.png" width="360" alt="The delete-confirmation dialog over a note">
+</p>
+
 ## Development
 
 The build toolchain (Rust, Node, GTK/WebKit dev headers) lives in a Fedora 44
@@ -82,6 +92,10 @@ Once a release binary has been exported (see `distrobox-export --bin`
 below), it also shows up in the GNOME app grid as **Jotter**, and can be run
 directly from anywhere with just `jotter`. The launcher forces
 `GDK_BACKEND=x11`; see "Wayland caveat" below for why.
+
+<p align="center">
+  <img src="screenshots/taskbar.png" width="520" alt="Jotter's icon pinned to the GNOME taskbar">
+</p>
 
 ```
 distrobox enter stickaroos-dev
