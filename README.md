@@ -19,12 +19,25 @@ It also shows up in the GNOME app grid as **Jotter**. The launcher forces
 Notes are stored as JSON (id, color, position, size, markdown content) in:
 
 ```
-~/.local/share/com.dtucker.jotter/notes/
+~/.local/share/com.danielgt.jotter/notes/
 ```
+
+This path is derived from `identifier` in `src-tauri/tauri.conf.json`. If you
+ever change it, the app looks in a new, empty directory — copy
+`~/.local/share/<old identifier>/notes/` into
+`~/.local/share/<new identifier>/notes/` first, or existing notes won't show
+up (they aren't lost, just invisible until the directory is migrated).
 
 Closing a note's window just hides it; the app keeps running via a tray icon
 (New Sticky Note / Show All Notes / Quit). Deleting a note is a separate action
 (trash icon in the note's hover toolbar) and is permanent.
+
+The tray icon needs `libayatana-appindicator3` (or `libappindicator3`), which
+isn't installed by default on every desktop (e.g. plain GNOME without the
+AppIndicator shell extension). If it's missing, `app::setup_tray` catches the
+resulting panic and runs without a tray instead of crashing on launch — in
+that mode the app quits normally when the last note window closes, since
+there'd otherwise be no Quit item to fall back on.
 
 ## Development
 
@@ -58,6 +71,20 @@ running.
 
 (`distrobox-export --bin` must be run from inside the container.)
 
+The first `distrobox-export --bin` for a given binary generates
+`~/.local/share/applications/com.danielgt.jotter.desktop` without a
+`StartupWMClass` line — without it GNOME can't match the running window back
+to the desktop entry, so the taskbar/dash/alt-tab icon falls back to a
+generic one even though `Icon=com.danielgt.jotter` is correct. Add it once:
+
+```
+echo 'StartupWMClass=Jotter' >> ~/.local/share/applications/com.danielgt.jotter.desktop
+```
+
+(Verified: re-running `distrobox-export --bin` afterwards is idempotent and
+does not strip this line — you don't need to re-add it after every rebuild,
+only after a first-time export or if the `.desktop` file is ever deleted.)
+
 ## Wayland caveat
 
 GNOME's native Wayland session does not let client apps set or persist an
@@ -82,22 +109,84 @@ conflicts with an existing GNOME/IBus binding on your system, change the
 
 - Note colors: yellow, pink, blue, green, purple, gray (`src/colors.ts`).
 - Pin/always-on-top toggle per note.
-- Drag by the header strip to move; 8 invisible resize handles (edges +
-  corners) around the note border let you resize, since `decorations: false`
-  removes GTK's built-in resize grab zones (`src/ResizeHandles.tsx`).
-- Minimize and close buttons in the header act like a normal GNOME window
-  (minimize iconifies via the WM; close hides the window, it doesn't delete
-  the note — the trash icon does that, separately and permanently).
-- Drag a note to within ~40px of the left or right screen edge and let go;
-  after it settles it collapses into a small tab docked to that edge, and
-  clicking the tab expands it back. This is a session-only UI state — it's
-  never written to the note's JSON file, and doesn't survive an app restart
-  (`src-tauri/src/edge.rs`, `src/NoteWindow.tsx`).
+- Drag by the header strip to move. Resizing from the border uses only
+  Tauri's built-in undecorated-window border grab (a 5px inset on Linux,
+  hardcoded, not configurable — see `undecorated_resizing.rs` in
+  `tauri-runtime-wry`) — no custom resize-handle component. Two different
+  attempts at a custom `ResizeHandles.tsx` layered on top of that built-in
+  grab (to make the ~5px margin easier to hit) both reintroduced the same
+  family of bug: the window visibly shrinking/growing erratically mid-drag.
+  The first attempt overlapped the built-in 0-5px zone outright; the second
+  offset the custom handles to start exactly at 5px to avoid that overlap,
+  and the erratic resizing still came back (this time reported as the top
+  jittering while dragging the *bottom* edge) — so whatever the real
+  conflict is, it isn't just pixel overlap with the documented 5px inset,
+  and it wasn't fully understood before being reverted. If you want to
+  revisit widening the grab margin, that's the trap to debug first — ideally
+  with a way to test a real mouse drag, since neither Wayland's blocking of
+  synthetic pointer input nor this project's screenshot-based verification
+  loop caught either regression before a human did.
+
+  `ResizeCursorHints.tsx` is a separate, safe addition on top of that native
+  grab: thin overlays at the same 5px edges/corners that only set the CSS
+  `cursor` (ns-resize/ew-resize/nwse-resize/nesw-resize) on hover, with no
+  mouse handlers of their own. The native GTK handler that actually starts
+  the resize-drag fires at the window-widget level regardless of what's in
+  the DOM, so this can't reintroduce the drag-conflict bug above — it only
+  fixes the resize border showing a text-select cursor instead of a resize
+  one.
+- Minimize iconifies via the WM. The close (×) button is deliberately the
+  same destructive action as "Delete note" in the hamburger menu — same
+  confirmation dialog, same `delete_note` command — there is no separate
+  "just hide the window" close anymore; there was a `close_note_window`
+  command for that, but it's gone, and don't bring it back without also
+  bringing back a non-destructive way to close from the header, since the ×
+  icon alone no longer means "just hide." Every saved note still reopens
+  automatically on the next full app launch regardless of what was open at
+  exit (`app::load_startup_notes` reopens everything in the notes
+  directory). "Show all notes" in the hamburger menu (mirrors the tray's own
+  item, same `show_all_notes` command) reopens any note that's merely
+  minimized or was closed via the tray, without a full app restart, and
+  doesn't depend on the tray being available.
+- Note windows are created with `.visible(false)` and shown by the frontend
+  (`App.tsx`, once `note` state settles either way) rather than at creation,
+  so there's no flash of Tauri's default black background while the webview
+  loads. An earlier attempt fixed the flash by setting `background_color` to
+  the note's own color while keeping `transparent(true)` — that broke
+  transparency instead: the rounded corners rendered opaque white rather
+  than see-through. Don't combine those two again; if you touch this, the
+  hidden-until-ready pattern is the one that's actually been shown to keep
+  transparency intact.
 - Slash menu items: Text, Heading 1-3, Bullet/Numbered/To-do lists, Quote,
   Code Block, Divider (`src/extensions/slashCommandItems.ts`) — add more
   there.
 - Markdown is stored directly (via `tiptap-markdown`), so note files are
-  plain, greppable markdown wrapped in a small JSON envelope.
+  plain, greppable markdown wrapped in a small JSON envelope. Links
+  (`@tiptap/extension-link`) render but don't open on a plain click —
+  `openOnClick: false` so you can click into link text to edit it — only on
+  ctrl/cmd+click, handled manually in `Editor.tsx` since the extension has
+  no built-in modifier-key fallback.
+- "About" in the hamburger menu opens a new sticky note (`note::ABOUT_CONTENT`,
+  `create_about_note` command) with author links, rather than opening a
+  browser directly — consistent with the app's own note-taking medium.
+  Opening links from within a note goes through `@tauri-apps/plugin-opener`'s
+  `openUrl`, permitted by the `opener:default` capability in
+  `src-tauri/capabilities/default.json`.
+  Building this surfaced a sharp debugging trap created by the
+  `.visible(false)` pattern above: a binary built with a plain
+  `cargo build --release` (skipping the Tauri CLI, so no `custom-protocol`
+  feature — see "Development" above) tries to load its UI from the
+  `localhost:1420` dev server instead of the bundled frontend. Before
+  `.visible(false)`, that failure was at least visible — a blank or
+  connection-refused window. Now the window is created invisible and only
+  shown once the frontend mounts and calls `.show()`; since a
+  `custom-protocol`-less build never gets that far, the window silently
+  never appears at all: process alive, 0% CPU, one 10×10 unmapped X window,
+  looks exactly like a genuine hang. It happened twice in a row while
+  building the About note feature, and was mistaken for a real startup-race
+  bug both times before the actual cause (the wrong build command) was
+  found. If a note window ever seems to hang on creation, check the build
+  command before anything else.
 
 ## Icons
 
@@ -105,3 +194,7 @@ Source icons live in `icons/` (see `icons/README.md` for the palette and
 design notes). `src-tauri/icons/` is generated from
 `icons/io.github.you.Jotter.svg` via `npx tauri icon <path>` — rerun that
 after editing the source SVG, rather than hand-editing the generated PNGs.
+
+## License
+
+MIT — see [LICENSE](LICENSE).

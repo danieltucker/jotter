@@ -14,6 +14,14 @@ pub fn open_note_window(app: &AppHandle, note: &Note) -> tauri::Result<()> {
         .min_inner_size(200.0, 180.0)
         .decorations(false)
         .transparent(true)
+        // Created hidden; the frontend calls window.show() once it has
+        // actually painted the note (see App.tsx), so there's nothing to
+        // flash. An earlier attempt at fixing the flash by setting
+        // `background_color` to the note's color, while keeping
+        // `transparent(true)`, broke transparency instead: the rounded
+        // corners rendered opaque white rather than see-through. Don't
+        // combine those two again.
+        .visible(false)
         .resizable(true)
         .shadow(false)
         .always_on_top(note.always_on_top)
@@ -25,23 +33,13 @@ pub fn open_note_window(app: &AppHandle, note: &Note) -> tauri::Result<()> {
 
     window.on_window_event(move |event| match event {
         tauri::WindowEvent::Moved(_) => {
-            // While docked, the window is a tiny tab being resized/positioned
-            // by the dock transition itself — not a real geometry change to
-            // persist, and not a user drag to settle-check either.
-            if crate::edge::is_docked(&app_handle, &id) {
-                return;
-            }
             if let Ok(pos) = window_for_events.outer_position() {
                 let scale = window_for_events.scale_factor().unwrap_or(1.0);
                 let logical = pos.to_logical::<f64>(scale);
                 crate::commands::persist_geometry(&app_handle, &id, Some((logical.x, logical.y)), None);
             }
-            crate::edge::schedule_settle_check(&app_handle, &id);
         }
         tauri::WindowEvent::Resized(_) => {
-            if crate::edge::is_docked(&app_handle, &id) {
-                return;
-            }
             if let Ok(size) = window_for_events.inner_size() {
                 let scale = window_for_events.scale_factor().unwrap_or(1.0);
                 let logical = size.to_logical::<f64>(scale);

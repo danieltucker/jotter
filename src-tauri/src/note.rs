@@ -7,7 +7,9 @@ pub const DEFAULT_WIDTH: f64 = 280.0;
 pub const DEFAULT_HEIGHT: f64 = 280.0;
 pub const DEFAULT_COLOR: &str = "yellow";
 
-pub const WELCOME_CONTENT: &str = "# Welcome to Jotter\n\nType `/` on a new line to insert headings, lists, to-dos, quotes and more.\n\nDrag the top edge to move me, and use the color dots to change my color.\n";
+pub const WELCOME_CONTENT: &str = "# Welcome to Jotter\n\nA simple markdown sticky-notes app for **Linux**. Type freely like a normal sticky note, or write **Markdown**, either standard syntax (converted automatically) or via `/` for a command menu: headings, lists, to-dos, quotes, code blocks, dividers.\n\n- [ ] Try a to-do, like this one\n\n> Quotes look like this\n\n```\n// code looks like this\nfunction greet(name) {\n  return `Hello, ${name}!`\n}\n```\n\n---\n\nThe menu icon (top-left, hidden until hovered) holds New Note, colors, and Delete Note. The pin icon (top-right) keeps a note on top of every other window, handy for one you want always visible.\n";
+
+pub const ABOUT_CONTENT: &str = "# About Jotter\n\nMade by **Daniel Tucker**.\n\n[GitHub](https://github.com/danieltucker) · [Bluesky](https://bsky.app/profile/danielgt.com) · [Website](https://danielgt.com)\n\nCtrl+click a link to open it.\n";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

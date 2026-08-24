@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect, useState } from "react";
 import { NoteWindow } from "./NoteWindow";
 import type { Note } from "./types";
@@ -20,6 +21,16 @@ export default function App() {
       .then(setNote)
       .catch(() => setNote(null));
   }, []);
+
+  // The window is created hidden (see window::open_note_window) specifically
+  // so it can be shown only once this has actually painted, instead of
+  // flashing black while the webview loads.
+  useEffect(() => {
+    if (note === undefined) return;
+    getCurrentWindow()
+      .show()
+      .catch(() => {});
+  }, [note]);
 
   if (note === undefined) {
     return null;

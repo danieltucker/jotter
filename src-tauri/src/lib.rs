@@ -1,11 +1,11 @@
 mod app;
 mod commands;
-mod edge;
 mod note;
 mod state;
 mod window;
 
 use state::AppState;
+use tauri::Manager;
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
 fn new_note_shortcut() -> Shortcut {
@@ -30,14 +30,13 @@ pub fn run() {
             commands::get_note,
             commands::list_notes,
             commands::create_note,
+            commands::create_about_note,
             commands::save_note_content,
             commands::set_note_color,
             commands::toggle_always_on_top,
             commands::delete_note,
-            commands::close_note_window,
             commands::minimize_note_window,
             commands::show_all_notes,
-            commands::undock_note,
         ])
         .setup(|app| {
             let handle = app.handle();
@@ -53,11 +52,16 @@ pub fn run() {
         })
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
-        .run(|_app_handle, event| {
+        .run(|app_handle, event| {
             // Keep running in the tray after the last note window is closed;
-            // only the tray's Quit item should end the process.
+            // only the tray's Quit item should end the process. If the tray
+            // never came up (see app::setup_tray), there'd be no way to quit
+            // at all, so fall back to exiting normally on the last window.
             if let tauri::RunEvent::ExitRequested { api, .. } = event {
-                api.prevent_exit();
+                let tray_active = app_handle.state::<AppState>().tray_active.load(std::sync::atomic::Ordering::Relaxed);
+                if tray_active {
+                    api.prevent_exit();
+                }
             }
         });
 }

@@ -1,15 +1,12 @@
 import { invoke } from "@tauri-apps/api/core";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { COLOR_ORDER, COLORS } from "./colors";
 import { NoteEditor } from "./Editor";
-import { ChevronIcon, CloseIcon, MinimizeIcon, PinIcon, PlusIcon, TrashIcon } from "./icons";
-import { ResizeHandles } from "./ResizeHandles";
+import { CloseIcon, InfoIcon, MenuIcon, MinimizeIcon, PinIcon, PlusIcon, ShowAllIcon, TrashIcon } from "./icons";
+import { ResizeCursorHints } from "./ResizeCursorHints";
 import type { Note, NoteColor } from "./types";
 
 const AUTOSAVE_DELAY_MS = 400;
-
-type DockEdge = "left" | "right" | "none";
 
 interface NoteWindowProps {
   note: Note;
@@ -18,10 +15,13 @@ interface NoteWindowProps {
 export function NoteWindow({ note }: NoteWindowProps) {
   const [color, setColor] = useState<NoteColor>(note.color);
   const [alwaysOnTop, setAlwaysOnTop] = useState(note.alwaysOnTop);
-  const [dockEdge, setDockEdge] = useState<DockEdge>("none");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const contentRef = useRef(note.content);
   const saveTimer = useRef<number | undefined>(undefined);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   const flushSave = () => {
     window.clearTimeout(saveTimer.current);
@@ -44,21 +44,27 @@ export function NoteWindow({ note }: NoteWindowProps) {
   }, []);
 
   useEffect(() => {
-    const unlisten = getCurrentWindow().listen<DockEdge>("dock-changed", (event) => {
-      setDockEdge(event.payload);
-    });
-    return () => {
-      unlisten.then((fn) => fn());
+    if (!menuOpen) return;
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (menuRef.current?.contains(target) || menuButtonRef.current?.contains(target)) return;
+      setMenuOpen(false);
     };
-  }, []);
-
-  const handleUndock = () => {
-    invoke("undock_note", { id: note.id }).catch(() => {});
-  };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [menuOpen]);
 
   const handleColorChange = (next: NoteColor) => {
     setColor(next);
     invoke("set_note_color", { id: note.id, color: next }).catch(() => {});
+    setMenuOpen(false);
   };
 
   const handleTogglePin = () => {
@@ -69,10 +75,26 @@ export function NoteWindow({ note }: NoteWindowProps) {
 
   const handleNewNote = () => {
     invoke("create_note").catch(() => {});
+    setMenuOpen(false);
+  };
+
+  const handleShowAll = () => {
+    invoke("show_all_notes").catch(() => {});
+    setMenuOpen(false);
+  };
+
+  const handleAbout = () => {
+    invoke("create_about_note").catch(() => {});
+    setMenuOpen(false);
   };
 
   const handleDelete = () => {
-    if (!window.confirm("Delete this note? This can't be undone.")) return;
+    setMenuOpen(false);
+    setConfirmingDelete(true);
+  };
+
+  const handleConfirmDelete = () => {
+    setConfirmingDelete(false);
     flushSave();
     invoke("delete_note", { id: note.id }).catch(() => {});
   };
@@ -81,26 +103,7 @@ export function NoteWindow({ note }: NoteWindowProps) {
     invoke("minimize_note_window", { id: note.id }).catch(() => {});
   };
 
-  const handleClose = () => {
-    flushSave();
-    invoke("close_note_window", { id: note.id }).catch(() => {});
-  };
-
   const palette = COLORS[color];
-
-  if (dockEdge !== "none") {
-    return (
-      <button
-        type="button"
-        className={`note-edge-tab note-edge-tab-${dockEdge}`}
-        style={{ background: palette.bg, color: palette.ink, borderColor: palette.header }}
-        title="Expand note"
-        onClick={handleUndock}
-      >
-        <ChevronIcon direction={dockEdge === "left" ? "right" : "left"} />
-      </button>
-    );
-  }
 
   return (
     <div
@@ -114,45 +117,87 @@ export function NoteWindow({ note }: NoteWindowProps) {
       }
     >
       <div className="note-header">
-        <div className="note-swatches">
-          {COLOR_ORDER.map((c) => (
-            <button
-              key={c}
-              type="button"
-              aria-label={COLORS[c].label}
-              className={`note-swatch${c === color ? " is-active" : ""}`}
-              style={{ background: COLORS[c].swatch }}
-              onClick={() => handleColorChange(c)}
-            />
-          ))}
+        <div className={`note-menu-anchor${menuOpen ? " is-open" : ""}`}>
+          <button
+            ref={menuButtonRef}
+            type="button"
+            className={`note-round-btn${menuOpen ? " is-active" : ""}`}
+            title="Note menu"
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            <MenuIcon size={16} />
+          </button>
+          {menuOpen && (
+            <div className="note-menu" ref={menuRef}>
+              <button type="button" className="note-menu-item" onClick={handleNewNote}>
+                <PlusIcon />
+                <span>New note</span>
+              </button>
+              <button type="button" className="note-menu-item" onClick={handleShowAll}>
+                <ShowAllIcon />
+                <span>Show all notes</span>
+              </button>
+              <div className="note-menu-sep" />
+              <div className="note-menu-colors">
+                {COLOR_ORDER.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    aria-label={COLORS[c].label}
+                    className={`note-menu-swatch${c === color ? " is-active" : ""}`}
+                    style={{ background: COLORS[c].swatch }}
+                    onClick={() => handleColorChange(c)}
+                  />
+                ))}
+              </div>
+              <div className="note-menu-sep" />
+              <button type="button" className="note-menu-item" onClick={handleAbout}>
+                <InfoIcon />
+                <span>About</span>
+              </button>
+              <div className="note-menu-sep" />
+              <button type="button" className="note-menu-item is-danger" onClick={handleDelete}>
+                <TrashIcon />
+                <span>Delete note</span>
+              </button>
+            </div>
+          )}
         </div>
         <div className="note-header-drag" data-tauri-drag-region="true" />
-        <div className="note-actions">
+        <div className="note-winctl">
           <button
             type="button"
-            className={`note-action${alwaysOnTop ? " is-active" : ""}`}
+            className={`note-round-btn${alwaysOnTop ? " is-active" : ""}`}
             title={alwaysOnTop ? "Unpin" : "Keep on top"}
             onClick={handleTogglePin}
           >
-            <PinIcon filled={alwaysOnTop} />
+            <PinIcon filled={alwaysOnTop} size={16} />
           </button>
-          <button type="button" className="note-action" title="New note" onClick={handleNewNote}>
-            <PlusIcon />
+          <button type="button" className="note-round-btn" title="Minimize" onClick={handleMinimize}>
+            <MinimizeIcon size={16} />
           </button>
-          <button type="button" className="note-action" title="Delete note" onClick={handleDelete}>
-            <TrashIcon />
-          </button>
-          <span className="note-action-sep" />
-          <button type="button" className="note-action" title="Minimize" onClick={handleMinimize}>
-            <MinimizeIcon />
-          </button>
-          <button type="button" className="note-action note-action-close" title="Close" onClick={handleClose}>
-            <CloseIcon />
+          <button type="button" className="note-round-btn note-round-btn-close" title="Delete note" onClick={handleDelete}>
+            <CloseIcon size={16} />
           </button>
         </div>
       </div>
       <NoteEditor content={note.content} onChange={scheduleSave} onBlur={flushSave} />
-      <ResizeHandles />
+      <ResizeCursorHints />
+      {confirmingDelete && (
+        <div className="note-confirm-overlay">
+          <div className="note-confirm-card">
+            <p className="note-confirm-message">Delete this note? This can't be undone.</p>
+            <div className="note-confirm-actions">
+              <button type="button" className="note-confirm-btn note-confirm-btn-cancel" onClick={() => setConfirmingDelete(false)}>
+                Cancel
+              </button>
+              <button type="button" className="note-confirm-btn note-confirm-btn-danger" onClick={handleConfirmDelete}>
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -36,105 +36,72 @@ body {
     0 10px 24px rgba(0, 0, 0, 0.28);
 }
 
-.resize-handle {
+/*
+ * Cosmetic only — shows the right resize cursor over Tauri's native
+ * undecorated-window border grab (a hardcoded 5px inset on Linux). No click
+ * handlers live here; see ResizeCursorHints.tsx.
+ */
+.resize-cursor {
   position: absolute;
   z-index: 10;
 }
 
-.rh-n,
-.rh-s {
-  left: 8px;
-  right: 8px;
-  height: 6px;
-  cursor: ns-resize;
+.rc-n,
+.rc-s {
+  left: 5px;
+  right: 5px;
+  height: 5px;
 }
 
-.rh-n {
+.rc-n {
   top: 0;
 }
 
-.rh-s {
+.rc-s {
   bottom: 0;
 }
 
-.rh-e,
-.rh-w {
-  top: 8px;
-  bottom: 8px;
-  width: 6px;
-  cursor: ew-resize;
+.rc-e,
+.rc-w {
+  top: 5px;
+  bottom: 5px;
+  width: 5px;
 }
 
-.rh-w {
+.rc-w {
   left: 0;
 }
 
-.rh-e {
+.rc-e {
   right: 0;
 }
 
-.rh-ne,
-.rh-sw {
-  width: 12px;
-  height: 12px;
-  cursor: nesw-resize;
+.rc-nw,
+.rc-ne,
+.rc-sw,
+.rc-se {
+  width: 5px;
+  height: 5px;
 }
 
-.rh-nw,
-.rh-se {
-  width: 12px;
-  height: 12px;
-  cursor: nwse-resize;
-}
-
-.rh-nw {
+.rc-nw {
   top: 0;
   left: 0;
 }
 
-.rh-ne {
+.rc-ne {
   top: 0;
   right: 0;
 }
 
-.rh-sw {
+.rc-sw {
   bottom: 0;
   left: 0;
 }
 
-.rh-se {
+.rc-se {
   bottom: 0;
   right: 0;
-}
-
-.note-edge-tab {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100vw;
-  height: 100vh;
-  margin: 0;
-  padding: 0;
-  border-style: solid;
-  border-width: 2px;
-  cursor: pointer;
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.3),
-    0 4px 10px rgba(0, 0, 0, 0.35);
-}
-
-.note-edge-tab:hover {
-  filter: brightness(1.08);
-}
-
-.note-edge-tab-left {
-  border-left: none;
-  border-radius: 0 10px 10px 0;
-}
-
-.note-edge-tab-right {
-  border-right: none;
-  border-radius: 10px 0 0 10px;
 }
 
 .note-fallback {
@@ -147,8 +114,8 @@ body {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  height: 28px;
-  padding: 0 6px;
+  height: 36px;
+  padding: 0 7px;
   background: var(--note-header);
   gap: 4px;
 }
@@ -159,77 +126,182 @@ body {
   min-width: 12px;
 }
 
-.note-swatches {
+.note-menu-anchor {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 5px;
-  opacity: 0;
-  transition: opacity 0.12s ease;
-  padding-left: 2px;
-}
-
-.note-actions {
-  display: flex;
-  align-items: center;
-  gap: 2px;
   opacity: 0;
   transition: opacity 0.12s ease;
 }
 
-.note-header:hover .note-swatches,
-.note-header:hover .note-actions {
+.note-winctl {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.note-header:hover .note-menu-anchor,
+.note-header:hover .note-winctl,
+.note-menu-anchor.is-open {
   opacity: 1;
 }
 
-.note-swatch {
-  width: 11px;
-  height: 11px;
+.note-round-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.14);
+  color: var(--note-ink);
+  cursor: pointer;
+}
+
+.note-round-btn:hover {
+  background: rgba(0, 0, 0, 0.24);
+}
+
+.note-round-btn.is-active {
+  background: rgba(0, 0, 0, 0.32);
+}
+
+.note-round-btn-close:hover {
+  background: #e0503c;
+  color: #fff;
+}
+
+.note-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  min-width: 190px;
+  padding: 4px;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1f1f1f;
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.15),
+    0 10px 30px rgba(0, 0, 0, 0.25);
+  font-size: 13px;
+  z-index: 30;
+}
+
+.note-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 8px;
+  border: none;
+  background: transparent;
+  border-radius: 5px;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.note-menu-item:hover {
+  background: #eef1f5;
+}
+
+.note-menu-item.is-danger {
+  color: #c8432f;
+}
+
+.note-menu-item.is-danger:hover {
+  background: #fbeae7;
+}
+
+.note-menu-sep {
+  height: 1px;
+  margin: 4px 2px;
+  background: #ececec;
+}
+
+.note-menu-colors {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 9px;
+}
+
+.note-menu-swatch {
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   border: 1px solid rgba(0, 0, 0, 0.18);
   padding: 0;
   cursor: pointer;
 }
 
-.note-swatch.is-active {
-  box-shadow: 0 0 0 2px var(--note-bg), 0 0 0 3.5px rgba(0, 0, 0, 0.35);
+.note-menu-swatch.is-active {
+  box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px rgba(0, 0, 0, 0.4);
 }
 
-.note-action {
+.note-confirm-overlay {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 50;
+}
+
+.note-confirm-card {
+  width: calc(100% - 40px);
+  max-width: 260px;
+  padding: 16px;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #1f1f1f;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  text-align: center;
+}
+
+.note-confirm-message {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.note-confirm-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.note-confirm-btn {
+  flex: 1;
+  padding: 7px 10px;
   border: none;
-  border-radius: 5px;
-  background: transparent;
-  color: var(--note-ink);
-  opacity: 0.7;
+  border-radius: 6px;
+  font-size: 13px;
   cursor: pointer;
 }
 
-.note-action:hover {
-  opacity: 1;
-  background: rgba(0, 0, 0, 0.08);
+.note-confirm-btn-cancel {
+  background: #eee;
+  color: #333;
 }
 
-.note-action.is-active {
-  opacity: 1;
-  background: rgba(0, 0, 0, 0.14);
+.note-confirm-btn-cancel:hover {
+  background: #e2e2e2;
 }
 
-.note-action-sep {
-  width: 1px;
-  height: 14px;
-  background: rgba(0, 0, 0, 0.15);
-  margin: 0 2px;
-  flex: 0 0 auto;
-}
-
-.note-action-close:hover {
-  opacity: 1;
+.note-confirm-btn-danger {
   background: #e0503c;
   color: #fff;
+}
+
+.note-confirm-btn-danger:hover {
+  background: #c8432f;
 }
 
 .note-editor {
@@ -283,26 +355,73 @@ body {
 
 .note-prose ul[data-type="taskList"] {
   list-style: none;
-  padding-left: 0.2em;
+  padding-left: 0.1em;
+}
+
+.note-prose ul[data-type="taskList"] ul[data-type="taskList"] {
+  padding-left: 1.5em;
+  margin: 0.2em 0 0;
 }
 
 .note-prose ul[data-type="taskList"] li {
   display: flex;
   align-items: flex-start;
-  gap: 0.4em;
+  gap: 0.55em;
+  margin: 0.3em 0;
 }
 
 .note-prose ul[data-type="taskList"] li > label {
   flex: 0 0 auto;
-  margin-top: 0.25em;
+  display: flex;
+  align-items: center;
+  height: 1.55em;
+  margin: 0;
+  user-select: none;
 }
 
 .note-prose ul[data-type="taskList"] li > div {
   flex: 1 1 auto;
+  min-width: 0;
 }
 
 .note-prose ul[data-type="taskList"] input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  border-radius: 5px;
+  border: 1.5px solid rgba(0, 0, 0, 0.38);
+  background: rgba(255, 255, 255, 0.5);
   cursor: pointer;
+  position: relative;
+}
+
+.note-prose ul[data-type="taskList"] input[type="checkbox"]:hover {
+  border-color: rgba(0, 0, 0, 0.55);
+}
+
+.note-prose ul[data-type="taskList"] input[type="checkbox"]:checked {
+  background: rgba(0, 0, 0, 0.55);
+  border-color: rgba(0, 0, 0, 0.55);
+}
+
+.note-prose ul[data-type="taskList"] input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 4px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.note-prose ul[data-type="taskList"] li[data-checked="true"] > div {
+  color: rgba(0, 0, 0, 0.4);
+  text-decoration: line-through;
 }
 
 .note-prose blockquote {

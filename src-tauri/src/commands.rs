@@ -70,6 +70,11 @@ pub fn create_note(app: AppHandle) -> Note {
 }
 
 #[tauri::command]
+pub fn create_about_note(app: AppHandle) -> Note {
+    crate::app::spawn_about_note(&app)
+}
+
+#[tauri::command]
 pub fn save_note_content(app: AppHandle, id: String, content: String) {
     let state = app.state::<AppState>();
     let dir = note::notes_dir(&app);
@@ -119,13 +124,6 @@ pub fn delete_note(app: AppHandle, id: String) {
 }
 
 #[tauri::command]
-pub fn close_note_window(app: AppHandle, id: String) {
-    if let Some(win) = app.get_webview_window(&id) {
-        let _ = win.close();
-    }
-}
-
-#[tauri::command]
 pub fn minimize_note_window(app: AppHandle, id: String) {
     if let Some(win) = app.get_webview_window(&id) {
         let _ = win.minimize();
@@ -135,9 +133,4 @@ pub fn minimize_note_window(app: AppHandle, id: String) {
 #[tauri::command]
 pub fn show_all_notes(app: AppHandle) {
     crate::app::show_all(&app);
-}
-
-#[tauri::command]
-pub fn undock_note(app: AppHandle, id: String) {
-    crate::edge::undock_note(&app, &id);
 }
