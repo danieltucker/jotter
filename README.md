@@ -37,6 +37,24 @@ Built with [Tauri](https://tauri.app) (Rust backend, one native window per
 note) + [React](https://react.dev) + [TipTap](https://tiptap.dev) (the
 editor), with note content stored as plain markdown via `tiptap-markdown`.
 
+## Installation
+
+Grab the latest build from the
+[Releases](https://github.com/danieltucker/jotter/releases) page. Three
+formats are published on every release:
+
+- **AppImage** — works on any distro, including immutable ones like Bazzite:
+  no install, no root, no `rpm-ostree` layering.
+  ```
+  chmod +x Jotter_*.AppImage
+  ./Jotter_*.AppImage
+  ```
+- **.deb** — for Debian/Ubuntu-based distros: `sudo apt install ./jotter_*.deb`
+- **.rpm** — for traditional (non-atomic) Fedora-based distros:
+  `sudo dnf install ./jotter-*.rpm`. On Bazzite/other rpm-ostree hosts,
+  prefer the AppImage instead of `rpm-ostree install`, which layers the
+  package onto the base image and requires a reboot.
+
 ## Getting started
 
 ```
