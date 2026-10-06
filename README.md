@@ -4,7 +4,8 @@
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A markdown-native sticky-notes app for Linux, built with Tauri + React + TipTap.
+A markdown-native sticky-notes app for Linux and macOS, built with React + TipTap
+(Tauri on Linux, a native Swift/AppKit shell on macOS).
 Multiple independent, always-visible note windows (like Apple's Stickies), but
 every note is markdown, and typing `/` on a new line opens a command menu
 (headings, lists, to-dos, quotes, code blocks, dividers, Notion/Confluence style).
@@ -55,6 +56,14 @@ formats are published on every release:
   prefer the AppImage instead of `rpm-ostree install`, which layers the
   package onto the base image and requires a reboot.
 
+### macOS
+
+Download `Jotter-macOS.zip` from the same
+[Releases](https://github.com/danieltucker/jotter/releases) page, unzip, and
+drag **Jotter.app** to Applications. The app isn't notarized, so the first
+launch is blocked: open System Settings > Privacy & Security and click
+**Open Anyway** (or run `xattr -dr com.apple.quarantine /Applications/Jotter.app`).
+
 ## Getting started
 
 ```
@@ -72,6 +81,18 @@ fails on missing system libraries. The built binary ends up at
 
 For the day-to-day dev workflow on this project's own machine (a Bazzite
 host, distrobox toolchain, exported launcher), see "Development" below.
+
+### macOS
+
+```
+macos/build.sh            # builds macos/build/Jotter.app
+macos/build.sh --install  # also copies it to /Applications
+```
+
+Needs Node and the Xcode Command Line Tools (`xcode-select --install`); full
+Xcode isn't required. With only the Command Line Tools the app is built for
+the current Mac's architecture; with full Xcode selected it's universal
+(SwiftPM hands multi-arch builds to xcbuild, which only ships with Xcode).
 
 ## Notes storage
 
@@ -95,6 +116,44 @@ icon or background-running mode.
 <p align="center">
   <img src="screenshots/delete-confirm.png" width="360" alt="The delete-confirmation dialog over a note">
 </p>
+
+On macOS, notes live in `~/Library/Application Support/Jotter/notes/`, in the
+same JSON format, so note files can be copied between the two platforms.
+File > Show Notes Folder in Finder opens it.
+
+## macOS app
+
+`macos/` is a small Swift/AppKit app that shows each note in a native
+window hosting the same web UI (`dist/`) in a WKWebView. Only
+`src/bridge.ts` knows which platform it's on: it routes `invoke` to Tauri on
+Linux or to the Swift app's `bridge` message handler on macOS, and sets
+`<html data-platform>` so the few macOS-only styles in `src/index.css` can
+be scoped. The macOS app injects the note (`window.__NOTE__`) before the
+page loads instead of answering `get_note`.
+
+- `AppDelegate.swift`: startup, menu bar, menu-bar icon, the global ⌃⌥N shortcut
+  (Carbon `RegisterEventHotKey`, which needs no Accessibility permission).
+- `NoteWindowController.swift`: one per note: the window, its web view, and
+  the bridge commands the page sends.
+- `NoteStore.swift`: reads and writes note files.
+- `BundleSchemeHandler.swift`: serves `dist/` over `jotter://`, since WebKit
+  won't run module scripts from `file://`.
+
+Differences from Linux, on purpose:
+
+- Notes use the native title bar: traffic lights, corner radius, shadow and
+  edge resizing all come from AppKit. The red button (and ⌘W, and Delete
+  note) deletes the note after a native confirmation sheet, matching the
+  Linux × button.
+- Closing the last note doesn't quit; the app stays in the Dock and menu bar.
+- Menu bar: New Note (⌘N), Color (⌘1–⌘6), Float on Top (⌥⌘F), Collapse Note
+  (rolls a note up to its title bar, like Apple's Stickies).
+- Double-clicking the title strip follows the system "double-click a
+  window's title bar" setting.
+- Each note's web view is inspectable from Safari's Develop menu.
+- `requestAnimationFrame` never fires in a window that isn't visible yet, so
+  the "ready, show me" signal is sent from a React effect instead; the
+  window also shows itself after 2s if the page never reports in.
 
 ## Development
 

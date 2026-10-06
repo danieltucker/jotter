@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# macOS app (macos/)
+macos/.build
+macos/build
