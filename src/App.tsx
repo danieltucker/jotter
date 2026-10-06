@@ -1,35 +1,25 @@
-import { invoke } from "@tauri-apps/api/core";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect, useState } from "react";
+import { loadNote, notifyReady } from "./bridge";
 import { NoteWindow } from "./NoteWindow";
 import type { Note } from "./types";
-
-function getNoteId(): string | null {
-  return new URLSearchParams(window.location.search).get("id");
-}
 
 export default function App() {
   const [note, setNote] = useState<Note | null | undefined>(undefined);
 
   useEffect(() => {
-    const id = getNoteId();
-    if (!id) {
-      setNote(null);
-      return;
-    }
-    invoke<Note | null>("get_note", { id })
+    loadNote()
       .then(setNote)
       .catch(() => setNote(null));
   }, []);
 
-  // The window is created hidden (see window::open_note_window) specifically
-  // so it can be shown only once this has actually painted, instead of
-  // flashing black while the webview loads.
+  // The window is created hidden (see window::open_note_window and
+  // macos/Sources/Jotter/NoteWindowController.swift) specifically so it can
+  // be shown only once this has rendered, instead of flashing while the
+  // webview loads. Not requestAnimationFrame: WebKit on macOS doesn't run
+  // frame callbacks for a window that isn't visible yet.
   useEffect(() => {
     if (note === undefined) return;
-    getCurrentWindow()
-      .show()
-      .catch(() => {});
+    notifyReady().catch(() => {});
   }, [note]);
 
   if (note === undefined) {

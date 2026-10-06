@@ -7,10 +7,12 @@ import TaskItem from "@tiptap/extension-task-item";
 import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
 import { Markdown } from "tiptap-markdown";
-import { openUrl } from "@tauri-apps/plugin-opener";
-import { useRef, type MouseEvent } from "react";
+import { isMac, listen, openUrl } from "./bridge";
+import { useEffect, useMemo, useRef, type MouseEvent } from "react";
 import { SlashCommand } from "./extensions/SlashCommand";
 import { BoldIcon, BulletListIcon, CodeIcon, HeadingIcon, ItalicIcon, StrikeIcon, TodoIcon } from "./icons";
+import type { Editor } from "@tiptap/core";
+import { DOMParser as ProseMirrorDOMParser } from "@tiptap/pm/model";
 import type { EditorView } from "@tiptap/pm/view";
 
 // Pasted images are inlined as base64 data URLs directly in the note's
@@ -37,10 +39,49 @@ function handleImagePaste(view: EditorView, event: ClipboardEvent) {
   return true;
 }
 
+const MARKDOWN_BLOCK = /^\s{0,3}(#{1,6}\s|[-*+]\s|\d+[.)]\s|>|```|~~~|(-\s*){3,}$|(\*\s*){3,}$)/m;
+const MARKDOWN_INLINE = /\*\*[^*\n]+\*\*|__[^_\n]+__|~~[^~\n]+~~|`[^`\n]+`|\[[^\]\n]+\]\([^)\s]+\)/;
+
+// tiptap-markdown only converts pasted text when the clipboard holds plain
+// text alone, but most sources (code editors, browsers, chat apps) add an
+// HTML flavor too, which ProseMirror prefers. When the plain text is
+// visibly markdown, parse that instead.
+function handleMarkdownPaste(view: EditorView, event: ClipboardEvent) {
+  const data = event.clipboardData;
+  const text = data?.getData("text/plain");
+  if (!data || !text) return false;
+  if (data.getData("text/html").includes("data-pm-slice")) return false;
+  if (view.state.selection.$from.parent.type.spec.code) return false;
+  if (!MARKDOWN_BLOCK.test(text) && !MARKDOWN_INLINE.test(text)) return false;
+
+  const editor = (view.dom as HTMLElement & { editor?: Editor }).editor;
+  if (!editor) return false;
+  event.preventDefault();
+  const container = document.createElement("div");
+  container.innerHTML = editor.storage.markdown.parser.parse(text);
+  const slice = ProseMirrorDOMParser.fromSchema(view.state.schema).parseSlice(container);
+  view.dispatch(view.state.tr.replaceSelection(slice).scrollIntoView());
+  return true;
+}
+
+function handlePaste(view: EditorView, event: ClipboardEvent) {
+  return handleImagePaste(view, event) || handleMarkdownPaste(view, event);
+}
+
 interface NoteEditorProps {
   content: string;
   onChange: (markdown: string) => void;
   onBlur?: () => void;
+}
+
+// On macOS the native title bar (and its traffic lights) draws over the top
+// of the webview, so the bubble menu must not float up into it: flip below
+// the selection instead, or failing that slide down out of the way.
+function bubbleMenuOptions() {
+  if (!isMac) return undefined;
+  const css = getComputedStyle(document.documentElement).getPropertyValue("--titlebar-height");
+  const padding = { top: (parseFloat(css) || 28) + 4 };
+  return { flip: { padding }, shift: { padding, crossAxis: true } };
 }
 
 export function NoteEditor({ content, onChange, onBlur }: NoteEditorProps) {
@@ -77,9 +118,23 @@ export function NoteEditor({ content, onChange, onBlur }: NoteEditorProps) {
         class: "note-prose",
         spellcheck: "true",
       },
-      handlePaste: handleImagePaste,
+      handlePaste,
     },
   });
+
+  // The macOS Edit menu owns ⌘Z/⇧⌘Z, so route those to ProseMirror's history
+  // rather than WebKit's native undo stack, which knows nothing about it.
+  useEffect(() => {
+    if (!editor) return;
+    const offUndo = listen("undo", () => editor.chain().focus().undo().run());
+    const offRedo = listen("redo", () => editor.chain().focus().redo().run());
+    const offFocus = listen("focus", () => editor.commands.focus("end"));
+    return () => {
+      offUndo();
+      offRedo();
+      offFocus();
+    };
+  }, [editor]);
 
   // Link.openOnClick is off (so a plain click positions the cursor in the
   // link text for editing, rather than always navigating away), and the
@@ -92,6 +147,7 @@ export function NoteEditor({ content, onChange, onBlur }: NoteEditorProps) {
     openUrl(anchor.href).catch(() => {});
   };
 
+  const menuOptions = useMemo(bubbleMenuOptions, []);
   const activeMarks = useEditorState({
     editor,
     selector: ({ editor }) => ({
@@ -108,7 +164,7 @@ export function NoteEditor({ content, onChange, onBlur }: NoteEditorProps) {
   return (
     <>
       <EditorContent editor={editor} className="note-editor" onClick={handleClick} />
-      <BubbleMenu editor={editor} className="bubble-menu">
+      <BubbleMenu editor={editor} className="bubble-menu" options={menuOptions}>
         <button
           type="button"
           className={`bubble-menu-btn${activeMarks.bold ? " is-active" : ""}`}

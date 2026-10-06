@@ -177,6 +177,8 @@ body {
   position: absolute;
   top: 100%;
   left: 0;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
   margin-top: 4px;
   min-width: 190px;
   padding: 4px;
@@ -517,6 +519,11 @@ body {
   background: rgba(255, 255, 255, 0.18);
 }
 
+.slash-menu-popup {
+  position: fixed;
+  z-index: 40;
+}
+
 .slash-menu {
   width: 220px;
   max-height: 280px;
@@ -583,4 +590,71 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/*
+ * macOS (macos/): each note is a native titled window, which supplies the
+ * corner radius, shadow and resize edges, and its traffic lights draw over
+ * the left end of the header. The header matches the title bar's height;
+ * the app injects --titlebar-height and --titlebar-inset.
+ */
+html[data-platform="macos"] .note {
+  border-radius: 0;
+  clip-path: none;
+  filter: none;
+}
+
+html[data-platform="macos"] .note-header {
+  justify-content: flex-end;
+  height: var(--titlebar-height, 28px);
+  padding: 0 6px 0 var(--titlebar-inset, 78px);
+  gap: 0;
+}
+
+html[data-platform="macos"] .note-menu {
+  left: auto;
+  right: 0;
+  max-height: calc(100vh - var(--titlebar-height, 28px) - 12px);
+}
+
+.note-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.note-header:hover .note-controls,
+.note-controls.is-open {
+  opacity: 1;
+}
+
+.note-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--note-ink);
+  opacity: 0.7;
+  cursor: default;
+}
+
+.note-icon-btn:hover,
+.note-icon-btn.is-active {
+  opacity: 1;
+}
+
+.note-icon-btn:active {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+html[data-platform="macos"] .note-menu-anchor {
+  opacity: 1;
 }
