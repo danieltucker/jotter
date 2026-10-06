@@ -12,7 +12,8 @@ const EDGE = 8;
  * if it fits, otherwise on whichever side has more room, with its height
  * capped to that room so it scrolls instead of running off the window.
  * Positioned by hand rather than with Floating UI's flip/size middleware,
- * whose resize feedback loop could settle on the cramped side.
+ * whose resize feedback loop could settle on the cramped side. Re-run on
+ * window resize so a note shrunk with the menu open doesn't clip it.
  */
 function positionMenu(popup: HTMLElement, caret: DOMRect) {
   const menu = (popup.firstElementChild as HTMLElement | null) ?? popup;
@@ -68,6 +69,7 @@ const suggestion: Omit<SuggestionOptions<SlashCommandItem, SlashCommandItem>, "e
         });
         getCaret = props.clientRect;
         document.body.appendChild(component.element);
+        window.addEventListener("resize", reposition);
         reposition();
       },
       onUpdate: (props) => {
@@ -86,6 +88,7 @@ const suggestion: Omit<SuggestionOptions<SlashCommandItem, SlashCommandItem>, "e
         return component.ref?.onKeyDown(props) ?? false;
       },
       onExit: () => {
+        window.removeEventListener("resize", reposition);
         cancelAnimationFrame(frame);
         component.element.remove();
         component.destroy();

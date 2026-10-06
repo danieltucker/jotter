@@ -7,8 +7,8 @@ import TaskItem from "@tiptap/extension-task-item";
 import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
 import { Markdown } from "tiptap-markdown";
-import { listen, openUrl } from "./bridge";
-import { useEffect, useRef, type MouseEvent } from "react";
+import { isMac, listen, openUrl } from "./bridge";
+import { useEffect, useMemo, useRef, type MouseEvent } from "react";
 import { SlashCommand } from "./extensions/SlashCommand";
 import { BoldIcon, BulletListIcon, CodeIcon, HeadingIcon, ItalicIcon, StrikeIcon, TodoIcon } from "./icons";
 import type { Editor } from "@tiptap/core";
@@ -74,6 +74,16 @@ interface NoteEditorProps {
   onBlur?: () => void;
 }
 
+// On macOS the native title bar (and its traffic lights) draws over the top
+// of the webview, so the bubble menu must not float up into it: flip below
+// the selection instead, or failing that slide down out of the way.
+function bubbleMenuOptions() {
+  if (!isMac) return undefined;
+  const css = getComputedStyle(document.documentElement).getPropertyValue("--titlebar-height");
+  const padding = { top: (parseFloat(css) || 28) + 4 };
+  return { flip: { padding }, shift: { padding, crossAxis: true } };
+}
+
 export function NoteEditor({ content, onChange, onBlur }: NoteEditorProps) {
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
@@ -137,6 +147,7 @@ export function NoteEditor({ content, onChange, onBlur }: NoteEditorProps) {
     openUrl(anchor.href).catch(() => {});
   };
 
+  const menuOptions = useMemo(bubbleMenuOptions, []);
   const activeMarks = useEditorState({
     editor,
     selector: ({ editor }) => ({
@@ -153,7 +164,7 @@ export function NoteEditor({ content, onChange, onBlur }: NoteEditorProps) {
   return (
     <>
       <EditorContent editor={editor} className="note-editor" onClick={handleClick} />
-      <BubbleMenu editor={editor} className="bubble-menu">
+      <BubbleMenu editor={editor} className="bubble-menu" options={menuOptions}>
         <button
           type="button"
           className={`bubble-menu-btn${activeMarks.bold ? " is-active" : ""}`}
