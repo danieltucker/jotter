@@ -1,8 +1,19 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { invoke, isMac, listen } from "./bridge";
+import { invoke, isMac, isWindows, listen } from "./bridge";
 import { COLOR_ORDER, COLORS } from "./colors";
 import { NoteEditor } from "./Editor";
-import { CloseIcon, InfoIcon, MenuIcon, MinimizeIcon, PinIcon, PlusIcon, ShowAllIcon, TrashIcon } from "./icons";
+import {
+  CloseIcon,
+  InfoIcon,
+  MenuIcon,
+  MinimizeIcon,
+  PinIcon,
+  PlusIcon,
+  ShowAllIcon,
+  TrashIcon,
+  WIN_GLYPH,
+  WinGlyph,
+} from "./icons";
 import { ResizeCursorHints } from "./ResizeCursorHints";
 import type { Note, NoteColor } from "./types";
 
@@ -131,15 +142,19 @@ export function NoteWindow({ note }: NoteWindowProps) {
 
   const palette = COLORS[color];
 
+  // Linux and Windows share one header layout; Windows swaps the round
+  // buttons for flat, full-height caption buttons in the system icon font.
+  const headerBtn = isMac ? "note-icon-btn" : isWindows ? "note-caption-btn" : "note-round-btn";
+
   const menuButton = (
     <button
       ref={menuButtonRef}
       type="button"
-      className={`${isMac ? "note-icon-btn" : "note-round-btn"}${menuOpen ? " is-active" : ""}`}
+      className={`${headerBtn}${menuOpen ? " is-active" : ""}`}
       title="Note menu"
       onClick={() => setMenuOpen((open) => !open)}
     >
-      <MenuIcon size={isMac ? 18 : 16} />
+      {isWindows ? <WinGlyph glyph={WIN_GLYPH.menu} size={13} /> : <MenuIcon size={isMac ? 18 : 16} />}
     </button>
   );
 
@@ -208,7 +223,7 @@ export function NoteWindow({ note }: NoteWindowProps) {
     </div>
   );
 
-  const linuxHeader = (
+  const tauriHeader = (
     <div className="note-header">
       <div className={`note-menu-anchor${menuOpen ? " is-open" : ""}`}>
         {menuButton}
@@ -218,17 +233,21 @@ export function NoteWindow({ note }: NoteWindowProps) {
       <div className="note-winctl">
         <button
           type="button"
-          className={`note-round-btn${alwaysOnTop ? " is-active" : ""}`}
+          className={`${headerBtn}${alwaysOnTop ? " is-active" : ""}`}
           title={alwaysOnTop ? "Unpin" : "Keep on top"}
           onClick={handleTogglePin}
         >
-          <PinIcon filled={alwaysOnTop} size={16} />
+          {isWindows ? (
+            <WinGlyph glyph={alwaysOnTop ? WIN_GLYPH.pinned : WIN_GLYPH.pin} size={12} />
+          ) : (
+            <PinIcon filled={alwaysOnTop} size={16} />
+          )}
         </button>
-        <button type="button" className="note-round-btn" title="Minimize" onClick={handleMinimize}>
-          <MinimizeIcon size={16} />
+        <button type="button" className={headerBtn} title="Minimize" onClick={handleMinimize}>
+          {isWindows ? <WinGlyph glyph={WIN_GLYPH.minimize} /> : <MinimizeIcon size={16} />}
         </button>
-        <button type="button" className="note-round-btn note-round-btn-close" title="Delete note" onClick={handleDelete}>
-          <CloseIcon size={16} />
+        <button type="button" className={`${headerBtn} ${headerBtn}-close`} title="Delete note" onClick={handleDelete}>
+          {isWindows ? <WinGlyph glyph={WIN_GLYPH.close} /> : <CloseIcon size={16} />}
         </button>
       </div>
     </div>
@@ -245,9 +264,11 @@ export function NoteWindow({ note }: NoteWindowProps) {
         } as CSSProperties
       }
     >
-      {isMac ? macHeader : linuxHeader}
+      {isMac ? macHeader : tauriHeader}
       <NoteEditor content={note.content} onChange={scheduleSave} onBlur={flushSave} />
-      {!isMac && <ResizeCursorHints />}
+      {/* Linux only: Windows resizes from the invisible frame just outside
+          the window (src-tauri/src/window.rs), and sets its own cursors. */}
+      {!isMac && !isWindows && <ResizeCursorHints />}
       {confirmingDelete && (
         <div className="note-confirm-overlay">
           <div className="note-confirm-card">

@@ -4,8 +4,8 @@
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A markdown-native sticky-notes app for Linux and macOS, built with React + TipTap
-(Tauri on Linux, a native Swift/AppKit shell on macOS).
+A markdown-native sticky-notes app for Linux, Windows and macOS, built with
+React + TipTap (Tauri on Linux and Windows, a native Swift/AppKit shell on macOS).
 Multiple independent, always-visible note windows (like Apple's Stickies), but
 every note is markdown, and typing `/` on a new line opens a command menu
 (headings, lists, to-dos, quotes, code blocks, dividers, Notion/Confluence style).
@@ -56,6 +56,15 @@ formats are published on every release:
   prefer the AppImage instead of `rpm-ostree install`, which layers the
   package onto the base image and requires a reboot.
 
+### Windows
+
+Download `Jotter_*_x64-setup.exe` (installs per-user, no admin needed) or
+`Jotter_*_x64_en-US.msi` from the same
+[Releases](https://github.com/danieltucker/jotter/releases) page. The
+installers aren't code-signed, so SmartScreen warns on first run: click
+**More info** > **Run anyway**. Windows 10 and 11 are supported; both ship
+the WebView2 runtime Jotter renders with.
+
 ### macOS
 
 Download `Jotter-macOS.zip` from the same
@@ -81,6 +90,27 @@ fails on missing system libraries. The built binary ends up at
 
 For the day-to-day dev workflow on this project's own machine (a Bazzite
 host, distrobox toolchain, exported launcher), see "Development" below.
+
+### Windows
+
+```
+npm install
+npm run tauri build
+```
+
+Needs Node, [Rust](https://rustup.rs) (the default MSVC toolchain), and the
+Visual Studio Build Tools' "Desktop development with C++" workload; see
+[Tauri's Windows setup guide](https://tauri.app/start/prerequisites/#windows).
+For example, with winget:
+
+```
+winget install Rustlang.Rustup
+winget install Microsoft.VisualStudio.2022.BuildTools --override "--quiet --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+```
+
+The app is `src-tauri\target\release\jotter.exe` (runnable directly); the
+installers land in `src-tauri\target\release\bundle\nsis\` and `...\msi\`.
+`npm run tauri dev` works the same as on Linux.
 
 ### macOS
 
@@ -117,9 +147,62 @@ icon or background-running mode.
   <img src="screenshots/delete-confirm.png" width="360" alt="The delete-confirmation dialog over a note">
 </p>
 
-On macOS, notes live in `~/Library/Application Support/Jotter/notes/`, in the
-same JSON format, so note files can be copied between the two platforms.
+On Windows, notes live in `%APPDATA%\com.danielgt.jotter\notes\`. On macOS,
+they live in `~/Library/Application Support/Jotter/notes/`. The JSON format
+is the same everywhere, so note files can be copied between platforms.
 File > Show Notes Folder in Finder opens it.
+
+## Windows app
+
+Windows runs the same Tauri app as Linux, rendering in WebView2; there's no
+separate Windows project. `src/bridge.ts` detects Windows from WebView2's user
+agent and sets `<html data-platform="windows">`, and the Windows-only parts
+are behind `#[cfg(windows)]` in `src-tauri/src/window.rs` and
+`html[data-platform="windows"]` in `src/index.css`.
+
+Differences from Linux, on purpose:
+
+- Note windows are opaque with the DWM frame shadow on, instead of
+  transparent with CSS-drawn corners and shadow: Windows 11 rounds the
+  corners and draws the shadow and hairline border itself (square corners
+  on Windows 10).
+- The header buttons are flat, full-height Windows 11 caption buttons in the
+  system icon font (Segoe Fluent Icons, or Segoe MDL2 Assets on Windows 10),
+  with the red hover on ×. They're still hidden until the header is hovered,
+  and × still deletes the note after the same confirmation.
+- WebView2's browser leftovers are switched off: right-clicking anywhere but
+  the text area does nothing (the text keeps its menu, for spelling and
+  cut/copy/paste), and F5, Ctrl+R, Ctrl+P and Alt+Left/Right do nothing.
+- A note whose saved position isn't on any connected monitor (say, it was
+  last on a monitor that's since been unplugged) reopens on the primary
+  monitor instead of off-screen.
+- Only one copy runs (`tauri-plugin-single-instance`, Windows-only
+  dependency): launching Jotter again while it's running brings every note
+  forward, like "Show all notes", instead of opening a second set of windows
+  over the same files.
+- Resizing is Windows' own: the grab area is the invisible frame just
+  outside each edge (plus a strip along the top), as on any other window,
+  so `ResizeCursorHints` isn't used.
+- Alt+F4 (or Close window from the taskbar) closes a note's window without
+  deleting the note, same as a window-manager close on Linux; it reopens on
+  the next launch. Only × and Delete note delete.
+- Fonts: Segoe UI Variable for text, Cascadia Mono / Consolas for code.
+
+Things that are Windows-specific traps, already handled:
+
+- Commands that open windows (`create_note`, `create_about_note`,
+  `show_all_notes`) must be `async`. A sync command runs on the main thread,
+  where building a WebView2 webview deadlocks: the new window is created
+  but its page never loads, so it's never shown. Keep any new
+  window-opening command async.
+- A minimized window is parked at (-32000, -32000) and shrunk to a stub,
+  which Windows reports as ordinary move/resize events; `window.rs` ignores
+  those while minimized so they never overwrite a note's saved geometry.
+- Building on an ARM64 Windows machine needs the Build Tools' "MSVC ARM64
+  build tools" component as well (`--add
+  Microsoft.VisualStudio.Component.VC.Tools.ARM64`), since Rust's build
+  scripts compile for the host. Run the build from PowerShell or cmd, not
+  Git Bash, whose coreutils `link` shadows MSVC's `link.exe`.
 
 ## macOS app
 
@@ -229,6 +312,10 @@ resizing, and everything else works the same either way.
 It's registered in `src-tauri/src/lib.rs` (`new_note_shortcut()`); if it
 conflicts with an existing GNOME/IBus binding on your system, change the
 `Modifiers`/`Code` there and rebuild.
+
+On Windows, Ctrl+Alt is the same as AltGr, so on keyboard layouts that type
+a character with AltGr+N (Polish `ń`, for one), Jotter's shortcut takes that
+key over while Jotter is running.
 
 ## Implementation notes
 

@@ -126,3 +126,24 @@ export function InfoIcon() {
     </svg>
   );
 }
+
+/**
+ * A glyph from Windows' own icon font (Segoe Fluent Icons on Windows 11,
+ * Segoe MDL2 Assets on Windows 10), so the note's caption buttons match
+ * every other window's. Only rendered on Windows, where those fonts ship.
+ */
+export const WIN_GLYPH = {
+  menu: "",
+  pin: "",
+  pinned: "",
+  minimize: "",
+  close: "",
+} as const;
+
+export function WinGlyph({ glyph, size = 10 }: { glyph: string; size?: number }) {
+  return (
+    <span className="win-glyph" style={{ fontSize: size }} aria-hidden="true">
+      {glyph}
+    </span>
+  );
+}

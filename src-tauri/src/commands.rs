@@ -64,13 +64,17 @@ pub fn list_notes(app: AppHandle) -> Vec<Note> {
     notes
 }
 
+// Commands that open windows are async: a sync command runs on the main
+// thread, and on Windows building a webview there deadlocks (WebView2 needs
+// the event loop the command is blocking), leaving the new note's window
+// created but never shown. Async commands run off the main thread.
 #[tauri::command]
-pub fn create_note(app: AppHandle) -> Note {
+pub async fn create_note(app: AppHandle) -> Note {
     crate::app::spawn_new_note(&app)
 }
 
 #[tauri::command]
-pub fn create_about_note(app: AppHandle) -> Note {
+pub async fn create_about_note(app: AppHandle) -> Note {
     crate::app::spawn_about_note(&app)
 }
 
@@ -131,6 +135,6 @@ pub fn minimize_note_window(app: AppHandle, id: String) {
 }
 
 #[tauri::command]
-pub fn show_all_notes(app: AppHandle) {
+pub async fn show_all_notes(app: AppHandle) {
     crate::app::show_all(&app);
 }

@@ -658,3 +658,113 @@ html[data-platform="macos"] .note-menu {
 html[data-platform="macos"] .note-menu-anchor {
   opacity: 1;
 }
+
+/*
+ * Windows: each note is an undecorated Tauri window like on Linux, but
+ * opaque and with the DWM frame shadow on (see src-tauri/src/window.rs), so
+ * Windows 11 itself rounds the corners and draws the shadow and border; the
+ * CSS versions above would only be clipped by the window's own edges. The
+ * header's buttons are flat, full-height caption buttons in the system icon
+ * font, sized and colored like the ones on every other Windows 11 window.
+ */
+html[data-platform="windows"] body {
+  font-family: "Segoe UI Variable Text", "Segoe UI", sans-serif;
+}
+
+html[data-platform="windows"] .note {
+  border-radius: 0;
+  clip-path: none;
+  filter: none;
+}
+
+html[data-platform="windows"] .note-header {
+  height: 32px;
+  padding: 0;
+  gap: 0;
+}
+
+html[data-platform="windows"] .note-menu-anchor,
+html[data-platform="windows"] .note-winctl {
+  height: 100%;
+  gap: 0;
+}
+
+.note-caption-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 100%;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--note-ink);
+  cursor: default;
+}
+
+.note-caption-btn:hover,
+.note-caption-btn.is-active {
+  background: rgba(0, 0, 0, 0.07);
+}
+
+.note-caption-btn:active {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.note-caption-btn-close:hover {
+  background: #c42b1c;
+  color: #fff;
+}
+
+.note-caption-btn-close:active {
+  background: rgba(196, 43, 28, 0.9);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.win-glyph {
+  font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets";
+  font-style: normal;
+  line-height: 1;
+}
+
+html[data-platform="windows"] .note-menu,
+html[data-platform="windows"] .slash-menu {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+html[data-platform="windows"] .note-menu {
+  left: 4px;
+}
+
+html[data-platform="windows"] .note-menu-item,
+html[data-platform="windows"] .slash-menu-item,
+html[data-platform="windows"] .note-confirm-btn {
+  border-radius: 4px;
+}
+
+html[data-platform="windows"] .note-prose code {
+  font-family: "Cascadia Mono", "Cascadia Code", Consolas, monospace;
+}
+
+/* WebView2's default scrollbars are the full-width classic ones. */
+html[data-platform="windows"] ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+html[data-platform="windows"] ::-webkit-scrollbar-track,
+html[data-platform="windows"] ::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+html[data-platform="windows"] ::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.22) padding-box;
+}
+
+html[data-platform="windows"] ::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.38);
+}

@@ -4,9 +4,9 @@ import { openUrl as tauriOpenUrl } from "@tauri-apps/plugin-opener";
 import type { Note } from "./types";
 
 /**
- * The one place the UI touches its host. On Linux that's Tauri; on macOS
- * it's the native Swift app (macos/), which injects the note and a message
- * handler into the page before it loads.
+ * The one place the UI touches its host. On Linux and Windows that's Tauri;
+ * on macOS it's the native Swift app (macos/), which injects the note and a
+ * message handler into the page before it loads.
  */
 
 type Listener = (payload?: unknown) => void;
@@ -24,10 +24,38 @@ declare global {
   }
 }
 
-export const platform: "macos" | "linux" = window.__JOTTER_PLATFORM__ === "macos" ? "macos" : "linux";
+// Windows runs the same Tauri build as Linux, in WebView2, whose user agent
+// always names Windows; only the styling and a few WebView2 defaults differ.
+export const platform: "macos" | "windows" | "linux" =
+  window.__JOTTER_PLATFORM__ === "macos" ? "macos" : navigator.userAgent.includes("Windows") ? "windows" : "linux";
 export const isMac = platform === "macos";
+export const isWindows = platform === "windows";
 
 document.documentElement.dataset.platform = platform;
+
+// WebView2 keeps browser behaviour a note shouldn't have: right-clicking
+// anything but text offers Back/Refresh/Print, F5/Ctrl+R reload the page
+// (dropping an edit that hasn't autosaved yet), Ctrl+P prints, and
+// Alt+Left/Right navigate. The editor keeps its context menu, for spelling
+// suggestions and cut/copy/paste.
+if (isWindows) {
+  document.addEventListener("contextmenu", (event) => {
+    if (!(event.target as HTMLElement | null)?.closest?.("[contenteditable='true']")) event.preventDefault();
+  });
+  document.addEventListener(
+    "keydown",
+    (event) => {
+      const key = event.key.toLowerCase();
+      const ctrlOnly = event.ctrlKey && !event.altKey && !event.metaKey;
+      const blocked =
+        key === "f5" ||
+        (ctrlOnly && (key === "r" || key === "p" || key === "u")) ||
+        (event.altKey && (key === "arrowleft" || key === "arrowright"));
+      if (blocked) event.preventDefault();
+    },
+    true,
+  );
+}
 
 export function invoke<T = unknown>(cmd: string, args: Record<string, unknown> = {}): Promise<T> {
   if (!isMac) return tauriInvoke<T>(cmd, args);

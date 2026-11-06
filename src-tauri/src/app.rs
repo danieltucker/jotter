@@ -80,7 +80,7 @@ pub fn load_startup_notes(app: &AppHandle) {
 
     if notes.is_empty() {
         let mut welcome = Note::new(160.0, 140.0);
-        welcome.content = note::WELCOME_CONTENT.to_string();
+        welcome.content = note::welcome_content();
         note::save(&dir, &welcome);
 
         {

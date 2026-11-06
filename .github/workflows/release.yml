@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-22.04
     permissions:
       contents: write
+    outputs:
+      releaseId: ${{ steps.tauri.outputs.releaseId }}
     steps:
       - uses: actions/checkout@v4
 
@@ -38,6 +40,7 @@ jobs:
         run: npm ci
 
       - name: Build and release
+        id: tauri
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -46,6 +49,35 @@ jobs:
           releaseName: "Jotter ${{ github.ref_name }}"
           releaseDraft: true
           prerelease: false
+
+  windows:
+    # Adds the .msi and the NSIS setup .exe to the draft release the Linux
+    # job created (by id: a draft release can't be looked up by its tag).
+    needs: release
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build and upload
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          releaseId: ${{ needs.release.outputs.releaseId }}
 
   macos:
     # Adds Jotter-macOS.zip to the draft release the Linux job created.

@@ -13,7 +13,19 @@ fn new_note_shortcut() -> Shortcut {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default();
+
+    // Launching Jotter again from the Start menu or taskbar while it's
+    // already running would otherwise start a second copy, opening a
+    // duplicate window for every note with both copies writing the same
+    // files. Instead the running copy brings its notes forward. (Must be
+    // the first plugin registered.)
+    #[cfg(windows)]
+    let builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+        app::show_all(app);
+    }));
+
+    builder
         .plugin(tauri_plugin_opener::init())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
